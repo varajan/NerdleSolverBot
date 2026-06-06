@@ -17,20 +17,20 @@ namespace NerdleSolver
     internal class ImageParser(Stream stream)
     {
         private readonly Image<Rgba32> ImageToParse = Image.Load<Rgba32>(stream);
+        private readonly string[] keys = { "1", "2", "3", "4", "5", "6", "7", "8", "9", "0" };
+        private readonly string[] operations = { "+", "-", "*", "/" };
 
-        private static IEnumerable<CellInfo> ExtractKeys(Image<Rgba32> keyboardImage)
+        private static IEnumerable<CellInfo> ExtractButtons(Image<Rgba32> keyboardImage, string[] buttonLabels, int row)
         {
-            string[] keys = { "1", "2", "3", "4", "5", "6", "7", "8", "9", "0" };
             var cellWidth = keyboardImage.Width / 10;
             var cellHeight = keyboardImage.Height / 2;
 
-            for (var i = 0; i < 10; i++)
+            for (var i = 0; i < buttonLabels.Length; i++)
             {
                 var cellImage = keyboardImage.Clone((IImageProcessingContext ctx) =>
-                    ctx.Crop(new Rectangle(i * cellWidth, 0, cellWidth, cellHeight)));
+                    ctx.Crop(new Rectangle(i * cellWidth, row * cellHeight, cellWidth, cellHeight)));
                 var color = GetColor(cellImage);
-                //cellImage.SaveAsPng($"key_{keys[i]}.png");
-                yield return new CellInfo(keys[i], color);
+                yield return new CellInfo(buttonLabels[i], color);
             }
         }
 
@@ -186,11 +186,16 @@ namespace NerdleSolver
         public (string expected, string unexpected, string pattern) Parse()
         {
             var keyboard = FindKeyboard();
-            var keys = ExtractKeys(keyboard).ToList();
+            var keysInfo = ExtractButtons(keyboard, keys, 0).Union(ExtractButtons(keyboard, operations, 1)).ToList();
 
-            // Placeholder for image parsing logic
-            // In a real implementation, this method would analyze the image and extract the expected numbers, unexpected numbers, and pattern.
-            return ("123", "456", "1?3?5");
+            var expected = keysInfo.Where(x => x.Color is ColorType.Green or ColorType.Purple).Select(x => x.Text).ToList();
+            var unexpected = keysInfo.Where(x => x.Color is ColorType.Black).Select(x => x.Text).ToList();
+            var white = keysInfo.Where(x => x.Color is ColorType.White).Select(x => x.Text).ToList();
+
+            return (
+                expected: string.Join("", expected),
+                unexpected: expected.Count == 7 ? string.Join("", white) : string.Join("", unexpected),
+                pattern: ".*");
         }
     }
 }
