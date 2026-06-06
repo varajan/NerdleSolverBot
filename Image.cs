@@ -326,12 +326,43 @@ namespace NerdleSolver
         private static bool IsBlack(Rgba32 pixel) =>
             (pixel.R is > 20 and < 30) && (pixel.G is > 20 and < 30) && (pixel.B < 20);
 
+        private string GetPattern(List<CellInfo[]> tableInfo)
+        {
+            var patternLength = tableInfo[0].Length;
+            string pattern = "";
+
+            for (int i = 0; i < patternLength; i++)
+            {
+                var green = tableInfo.Select(row => row[i]).FirstOrDefault(cell => cell.Color == ColorType.Green);
+                if (green is not null)
+                {
+                    var key = green.Text;
+                    pattern += operations.Contains(key) ? $"\\{key}" : key;
+                    continue;
+                }
+
+                var notInPlace = tableInfo
+                    .Select(row => row[i])
+                    .Where(cell => cell.Color is ColorType.Purple or ColorType.Black)
+                    .Where(cell => cell.Text.Length == 1)
+                    .ToList();
+                if (notInPlace.Any())
+                {
+                    pattern += $"[^{string.Join("", notInPlace.Select(x => x.Text))}]";
+                    continue;
+                }
+
+                pattern += ".";
+            }
+
+            return pattern;
+        }
+
         public (string expected, string unexpected, string pattern) Parse()
         {
             var table = FindTable();
-            var tableInfo = ExtractTableData(table).ToList();
-
             var keyboard = FindKeyboard();
+            var tableInfo = ExtractTableData(table).ToList();
             var keysInfo = ExtractButtons(keyboard, keys, 0).Union(ExtractButtons(keyboard, operations, 1)).ToList();
 
             var expected = keysInfo.Where(x => x.Color is ColorType.Green or ColorType.Purple).Select(x => x.Text).ToList();
@@ -341,7 +372,7 @@ namespace NerdleSolver
             return (
                 expected: string.Join("", expected),
                 unexpected: expected.Count == 7 ? string.Join("", white) : string.Join("", unexpected),
-                pattern: ".*");
+                pattern: GetPattern(tableInfo));
         }
     }
 }
