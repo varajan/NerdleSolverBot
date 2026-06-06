@@ -4,6 +4,11 @@ using Telegram.Bot;
 using Telegram.Bot.Polling;
 using Telegram.Bot.Types;
 
+var fileStream = File.OpenRead("p1.jpg");
+var parser = new ImageParser(fileStream);
+var parse = parser.Parse();
+return;
+
 var stage = Stage.ShowAll;
 var botToken = "...:...";
 var nerdle = new Nerdle();
@@ -35,15 +40,31 @@ async Task HandleUpdateAsync(
     var chatId = update.Message.Chat.Id;
     var text = update.Message.Text.Trim().ToLower();
 
+    if (update.Message.Photo != null)
+    {
+        var photo = update.Message.Photo.Last();
+        var file = await botClient.GetFile(photo.FileId);
+
+        using var stream = new MemoryStream();
+
+        await botClient.DownloadFile(file.FilePath!, stream);
+        stream.Position = 0;
+
+        var parser = new ImageParser(stream);
+        var (expected, unexpected, pattern) = parser.Parse();
+        nerdle.Expected = expected;
+        nerdle.Unexpected = unexpected;
+        nerdle.Pattern = pattern;
+
+        await SendMessage($"Must: {nerdle.Expected}\r\nForbidden: {nerdle.Unexpected}\r\nPattern: {nerdle.Pattern}");
+        return;
+    }
+
     switch (text)
     {
         case "/cancel":
             stage = Stage.ShowAll;
-            await SendMessage(
-                $"Must: {nerdle.Expected}" + "\r\n" +
-                $"Forbidden: {nerdle.Unexpected}" + "\r\n" +
-                $"Pattern: {nerdle.Pattern}");
-
+            await SendMessage($"Must: {nerdle.Expected}\r\nForbidden: {nerdle.Unexpected}\r\nPattern: {nerdle.Pattern}");
             return;
 
         case "/must":
