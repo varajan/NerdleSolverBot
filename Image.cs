@@ -1,6 +1,8 @@
 ﻿using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
+using System.Text.RegularExpressions;
+using Tesseract;
 
 namespace NerdleSolver
 {
@@ -20,6 +22,92 @@ namespace NerdleSolver
         private readonly string[] keys = { "1", "2", "3", "4", "5", "6", "7", "8", "9", "0" };
         private readonly string[] operations = { "+", "-", "*", "/" };
 
+        private static readonly TesseractEngine OcrEngine = CreateEngine();
+
+        private static TesseractEngine CreateEngine()
+        {
+            var engine = new TesseractEngine("testdata", "eng", EngineMode.Default);
+            Environment.SetEnvironmentVariable("TESSDATA_PREFIX", "testdata");
+            engine.SetVariable("tessedit_char_whitelist", "0123456789+-*/=");
+
+            return engine;
+        }
+
+        private IEnumerable<CellInfo[]> ExtractTableData(Image<Rgba32> tableImage)
+        {
+            var rowHeight = GetRowHeight(tableImage);
+
+            for (var i = 0; i < 10; i++)
+            {
+                var result = ExtractRowData(tableImage, i, rowHeight);
+                if (result.All(x => x.Color == ColorType.White)) break;
+
+                yield return result;
+            }
+        }
+
+        private static CellInfo[] ExtractRowData(Image<Rgba32> tableImage, int row, int rowHeight)
+        {
+            var result = new CellInfo[8];
+            var cellWidth = tableImage.Width / result.Length;
+
+            for (var i = 0; i < result.Length; i++)
+            {
+                var cellImage = tableImage.Clone((IImageProcessingContext ctx) =>
+                    ctx.Crop(new Rectangle(i * cellWidth, row * rowHeight, cellWidth, rowHeight)));
+                var text = GetCellText(cellImage);
+                var color = GetColor(cellImage);
+
+                result[i] = new CellInfo(text, color);
+            }
+
+            return result;
+        }
+
+        private static string GetCellText(Image<Rgba32> cellImage)
+        {
+            using var ms = new MemoryStream();
+
+            cellImage.SaveAsPng(ms);
+            ms.Position = 0;
+
+            using var pix = Pix.LoadFromMemory(ms.ToArray());
+            using var page = OcrEngine.Process(pix, PageSegMode.SingleChar);
+            string text = page.GetText().Trim();
+            text = Regex.Replace(text, @"[^0-9+\-*/=]", "");
+
+            return text;
+        }
+
+        private int GetRowHeight(Image<Rgba32> tableImage)
+        {
+            var height = 0;
+
+            for (; height < tableImage.Height; height++)
+            {
+                if (IsFullyWhiteRow(height))
+                    break;
+            }
+
+            for (; height < tableImage.Height; height++)
+            {
+                if (!IsFullyWhiteRow(height))
+                    break;
+            }
+
+            return height;
+        }
+
+        private bool IsFullyWhiteRow(int y)
+        {
+            for (int x = 0; x < ImageToParse.Width; x++)
+            {
+                var pixel = ImageToParse[x, y];
+                if (!IsWhite(pixel)) return false;
+            }
+            return true;
+        }
+
         private static IEnumerable<CellInfo> ExtractButtons(Image<Rgba32> keyboardImage, string[] buttonLabels, int row)
         {
             var cellWidth = keyboardImage.Width / 10;
@@ -36,7 +124,7 @@ namespace NerdleSolver
 
         private static ColorType GetColor(Image<Rgba32> cellImage)
         {
-            int threshold = 250;
+            int threshold = cellImage.Width * cellImage.Height / 10;
             int white = 0;
             int green = 0;
             int purple = 0;
@@ -97,6 +185,60 @@ namespace NerdleSolver
                     keyboardRight - keyboardLeft,
                     keyboardBottom - keyboardTop)));
             return cropped;
+        }
+
+        private Image<Rgba32> FindTable()
+        {
+            double grayThreshold = 0.95;
+
+            int keyboardTop = FirstGrayRow(grayThreshold);
+            int tableTop = FirtTableRow();
+
+            int keyboardLeft = FirstNonWhiteColumn();
+            int keyboardRight = FirstWhiteColumn(keyboardLeft);
+
+            var cropped = ImageToParse.Clone((IImageProcessingContext ctx) =>
+                ctx.Crop(new Rectangle(
+                    keyboardLeft,
+                    tableTop,
+                    keyboardRight - keyboardLeft,
+                    keyboardTop - tableTop)));
+
+            return cropped;
+        }
+
+        private int FirtTableRow()
+        {
+            for (int y = 0; y < ImageToParse.Height; y++)
+            {
+                if (!IsTableRow(y))
+                    return y;
+            }
+            return 0;
+        }
+
+        private bool IsTableRow(int y)
+        {
+            int keyColor = 0;
+            int whiteOrGray = 0;
+
+            for (int x = 0; x < ImageToParse.Width / 8; x++)
+            {
+                var pixel = ImageToParse[x, y];
+                if (IsWhite(pixel) || IsGray(pixel))
+                {
+                    whiteOrGray++;
+                    continue;
+                }
+
+                if (IsGreen(pixel) || IsPurple(pixel) || IsBlack(pixel))
+                {
+                    keyColor++;
+                    continue;
+                }
+            }
+
+            return keyColor > whiteOrGray;
         }
 
         private int FirstGrayRow(double threshold)
@@ -169,10 +311,11 @@ namespace NerdleSolver
         private static bool IsGray(Rgba32 pixel) =>
             (pixel.R is > 220 and < 240) && (pixel.G is > 220 and < 240) && (pixel.B is > 220 and < 240);
 
+        // rgb(135, 46, 108)
         // rgb(127, 35, 99)
         // rgb(128, 4, 88)
         private static bool IsPurple(Rgba32 pixel) =>
-            (pixel.R is > 125 and < 130) && pixel.G is < 40 && pixel.B is > 85 and < 100;
+            (pixel.R is > 125 and < 140) && pixel.G is < 50 && pixel.B is > 85 and < 110;
 
         // rgb(60, 136, 117)
         private static bool IsGreen(Rgba32 pixel) =>
@@ -185,6 +328,9 @@ namespace NerdleSolver
 
         public (string expected, string unexpected, string pattern) Parse()
         {
+            var table = FindTable();
+            var tableInfo = ExtractTableData(table).ToList();
+
             var keyboard = FindKeyboard();
             var keysInfo = ExtractButtons(keyboard, keys, 0).Union(ExtractButtons(keyboard, operations, 1)).ToList();
 
