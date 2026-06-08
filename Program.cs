@@ -4,11 +4,6 @@ using Telegram.Bot;
 using Telegram.Bot.Polling;
 using Telegram.Bot.Types;
 
-var fileStream = File.OpenRead("p1.jpg");
-var parser = new ImageParser(fileStream);
-var parse = parser.Parse();
-return;
-
 var stage = Stage.ShowAll;
 var botToken = "...:...";
 var nerdle = new Nerdle();
@@ -34,31 +29,27 @@ async Task HandleUpdateAsync(
     Update update,
     CancellationToken cancellationToken)
 {
+    var chatId = update.Message?.Chat.Id;
+
+    if (update.Message?.Photo != null)
+    {
+        try
+        {
+            await ParseImage();
+            await SendMessage($"Must: {nerdle.Expected}\r\nForbidden: {nerdle.Unexpected}\r\nPattern: {nerdle.Pattern}");
+            await Calculate();
+        }
+        catch (Exception ex)
+        {
+            await SendMessage($"Error parsing image: {ex.Message}");
+        }
+        return;
+    }
+
     if (update.Message?.Text == null)
         return;
 
-    var chatId = update.Message.Chat.Id;
     var text = update.Message.Text.Trim().ToLower();
-
-    if (update.Message.Photo != null)
-    {
-        var photo = update.Message.Photo.Last();
-        var file = await botClient.GetFile(photo.FileId);
-
-        using var stream = new MemoryStream();
-
-        await botClient.DownloadFile(file.FilePath!, stream);
-        stream.Position = 0;
-
-        var parser = new ImageParser(stream);
-        var (expected, unexpected, pattern) = parser.Parse();
-        nerdle.Expected = expected;
-        nerdle.Unexpected = unexpected;
-        nerdle.Pattern = pattern;
-
-        await SendMessage($"Must: {nerdle.Expected}\r\nForbidden: {nerdle.Unexpected}\r\nPattern: {nerdle.Pattern}");
-        return;
-    }
 
     switch (text)
     {
@@ -83,18 +74,7 @@ async Task HandleUpdateAsync(
             return;
 
         case "/calculate":
-            stage = Stage.ShowAll;
-            var results = nerdle.Solve().ToList();
-
-            await SendMessage($"Found {results.Count} solution(s).");
-            if (results.Count < 35)
-            {
-                await SendMessage(string.Join(", ", results));
-            }
-            else
-            {
-                await SendAsFile(results);
-            }
+            await Calculate();
             return;
     }
 
@@ -115,10 +95,48 @@ async Task HandleUpdateAsync(
 
     // --- local functions ---
 
+    async Task Calculate()
+    {
+        stage = Stage.ShowAll;
+        var results = nerdle.Solve().ToList();
+
+        await SendMessage($"Found {results.Count} solution(s).");
+        if (results.Count < 35)
+        {
+            await SendMessage(string.Join("\r\n", results));
+        }
+        else
+        {
+            await SendAsFile(results);
+        }
+    }
+
+    // --- local functions ---
+
+    async Task ParseImage()
+    {
+        var photo = update.Message!.Photo!.Last();
+        var file = await botClient.GetFile(photo.FileId);
+
+        using var stream = new MemoryStream();
+        await botClient.DownloadFile(file.FilePath!, stream);
+        stream.Position = 0;
+
+        var parser = new ImageParser(stream);
+        var (expected, unexpected, pattern) = parser.Parse();
+        nerdle.Expected = expected;
+        nerdle.Unexpected = unexpected;
+        nerdle.Pattern = pattern;
+    }
+
+    // --- local functions ---
+
     async Task SendMessage(string message)
     {
+        if (string.IsNullOrWhiteSpace(message)) return;
+
         await botClient.SendMessage(
-            chatId,
+            chatId!,
             message,
             cancellationToken: cancellationToken);
     }
@@ -131,7 +149,7 @@ async Task HandleUpdateAsync(
         using (var stream = new MemoryStream(bytes))
         {
             await botClient.SendDocument(
-               chatId,
+               chatId!,
                document: new InputFileStream(stream, "solution.txt"),
                caption: $"{lines.Count} Solutions",
                cancellationToken: cancellationToken);

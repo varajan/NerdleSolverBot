@@ -83,15 +83,17 @@ namespace NerdleSolver
         {
             var height = 0;
 
-            for (; height < tableImage.Height; height++)
-            {
-                if (IsFullyWhiteRow(height))
-                    break;
-            }
+            // find where white lines end
+            if (IsFullyWhiteRow(height))
+                for (; height < tableImage.Height; height++)
+                {
+                    if (!IsFullyWhiteRow(height))
+                        break;
+                }
 
             for (; height < tableImage.Height; height++)
             {
-                if (!IsFullyWhiteRow(height))
+                if (IsFullyWhiteRow(height))
                     break;
             }
 
