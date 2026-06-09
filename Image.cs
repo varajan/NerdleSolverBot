@@ -1,8 +1,6 @@
 ﻿using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
-using System.Text.RegularExpressions;
-using Tesseract;
 
 namespace NerdleSolver
 {
@@ -18,20 +16,9 @@ namespace NerdleSolver
 
     internal class ImageParser(Stream stream)
     {
-        private readonly Image<Rgba32> ImageToParse = Image.Load<Rgba32>(stream);
+        private Image<Rgba32> ImageToParse = Image.Load<Rgba32>(stream);
         private readonly string[] keys = { "1", "2", "3", "4", "5", "6", "7", "8", "9", "0" };
         private readonly string[] operations = { "+", "-", "*", "/" };
-
-        private static readonly TesseractEngine OcrEngine = CreateEngine();
-
-        private static TesseractEngine CreateEngine()
-        {
-            var engine = new TesseractEngine("testdata", "eng", EngineMode.Default);
-            Environment.SetEnvironmentVariable("TESSDATA_PREFIX", "testdata");
-            engine.SetVariable("tessedit_char_whitelist", "0123456789+-*/=");
-
-            return engine;
-        }
 
         private IEnumerable<CellInfo[]> ExtractTableData(Image<Rgba32> tableImage)
         {
@@ -66,22 +53,21 @@ namespace NerdleSolver
 
         private static string GetCellText(Image<Rgba32> cellImage)
         {
-            using var ms = new MemoryStream();
-
-            cellImage.SaveAsPng(ms);
-            ms.Position = 0;
-
-            using var pix = Pix.LoadFromMemory(ms.ToArray());
-            using var page = OcrEngine.Process(pix, PageSegMode.SingleChar);
-            string text = page.GetText().Trim();
-            text = Regex.Replace(text, @"[^0-9+\-*/=]", "");
-
-            return text;
+            // not implemented yet
+            return "";
         }
 
         private int GetRowHeight(Image<Rgba32> tableImage)
         {
             var height = 0;
+
+            // find where white lines begin
+            if (IsFullyBlackRow(height))
+                for (; height < tableImage.Height; height++)
+                {
+                    if (IsFullyWhiteRow(height))
+                        break;
+                }
 
             // find where white lines end
             if (IsFullyWhiteRow(height))
@@ -100,12 +86,24 @@ namespace NerdleSolver
             return height;
         }
 
-        private bool IsFullyWhiteRow(int y)
+        private bool IsFullyWhiteRow(int y, double tolerance = 0.95)
+        {
+            int white = 0;
+            for (int x = 0; x < ImageToParse.Width; x++)
+            {
+                var pixel = ImageToParse[x, y];
+                if (IsWhite(pixel)) white++;
+            }
+
+            return (double)white / ImageToParse.Width >= tolerance;
+        }
+
+        private bool IsFullyBlackRow(int y)
         {
             for (int x = 0; x < ImageToParse.Width; x++)
             {
                 var pixel = ImageToParse[x, y];
-                if (!IsWhite(pixel)) return false;
+                if (!IsBlack(pixel)) return false;
             }
             return true;
         }
@@ -330,6 +328,8 @@ namespace NerdleSolver
 
         private string GetPattern(List<CellInfo[]> tableInfo)
         {
+            if (tableInfo.Count == 0) return ".*";
+
             var patternLength = tableInfo[0].Length;
             string pattern = "";
 
@@ -360,8 +360,23 @@ namespace NerdleSolver
             return pattern;
         }
 
+        private Image<Rgba32> SkipHeader()
+        {
+            int headerHeight = 0;
+            for (; headerHeight < ImageToParse.Height; headerHeight++)
+            {
+                if (IsFullyWhiteRow(headerHeight))
+                    break;
+            }
+
+            var cropped = ImageToParse.Clone((IImageProcessingContext ctx) =>
+                ctx.Crop(new Rectangle(0, headerHeight, ImageToParse.Width, ImageToParse.Height - headerHeight)));
+            return cropped;
+        }
+
         public (string expected, string unexpected, string pattern) Parse()
         {
+            ImageToParse = SkipHeader();
             var table = FindTable();
             var keyboard = FindKeyboard();
             var tableInfo = ExtractTableData(table).ToList();

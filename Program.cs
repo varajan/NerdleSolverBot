@@ -37,11 +37,13 @@ async Task HandleUpdateAsync(
         {
             await ParseImage();
             await SendMessage($"Must: {nerdle.Expected}\r\nForbidden: {nerdle.Unexpected}\r\nPattern: {nerdle.Pattern}");
-            await Calculate();
+            //await Calculate();
+            // todo: uncomment when pattern is not empty
         }
         catch (Exception ex)
         {
             await SendMessage($"Error parsing image: {ex.Message}");
+            await SendAsFile("exception", ex.StackTrace?.Split("\r\n"));
         }
         return;
     }
@@ -107,7 +109,7 @@ async Task HandleUpdateAsync(
         }
         else
         {
-            await SendAsFile(results);
+            await SendAsFile("solutions", results);
         }
     }
 
@@ -143,15 +145,17 @@ async Task HandleUpdateAsync(
 
     // --- local functions ---
 
-    async Task SendAsFile(List<string> lines)
+    async Task SendAsFile(string filename, IEnumerable<string>? lines)
     {
+        if (lines is null) return;
+
         var bytes = Encoding.UTF8.GetBytes(string.Join("\n", lines));
         using (var stream = new MemoryStream(bytes))
         {
             await botClient.SendDocument(
                chatId!,
-               document: new InputFileStream(stream, "solution.txt"),
-               caption: $"{lines.Count} Solutions",
+               document: new InputFileStream(stream, $"{filename}.txt"),
+               caption: filename,
                cancellationToken: cancellationToken);
         }
     }
