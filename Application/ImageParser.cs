@@ -98,6 +98,22 @@ internal class ImageParser(Stream stream)
         return true;
     }
 
+    private bool IsTableRow(int y, double tolerance)
+    {
+        int keyColor = 0;
+        for (int x = 0; x < ImageToParse.Width; x++)
+        {
+            var pixel = ImageToParse[x, y];
+
+            if (IsGreen(pixel) || IsPurple(pixel) || IsBlack(pixel))
+            {
+                keyColor++;
+                continue;
+            }
+        }
+        return (double)keyColor / ImageToParse.Width >= tolerance;
+    }
+
     private static IEnumerable<CellInfo> ExtractButtons(Image<Rgba32> keyboardImage, string[] buttonLabels, int row)
     {
         var cellWidth = keyboardImage.Width / 10;
@@ -159,76 +175,45 @@ internal class ImageParser(Stream stream)
         return ColorType.White;
     }
 
-    private Image<Rgba32> FindKeyboard()
+    private (Image<Rgba32> image, Rectangle size) FindKeyboard()
     {
-        double grayThreshold = 0.95;
+        double grayThreshold = 0.9;
 
         int keyboardTop = FirstGrayRow(grayThreshold);
         int keyboardBottom = LastGrayRow(keyboardTop, grayThreshold);
-        int keyboardLeft = FirstNonWhiteColumn();
-        int keyboardRight = FirstWhiteColumn(keyboardLeft);
-
-        var cropped = ImageToParse.Clone((IImageProcessingContext ctx) =>
+        var image = ImageToParse.Clone((IImageProcessingContext ctx) =>
             ctx.Crop(new Rectangle(
-                keyboardLeft,
+                0,
                 keyboardTop,
-                keyboardRight - keyboardLeft,
+                ImageToParse.Width,
                 keyboardBottom - keyboardTop)));
-        return cropped;
-    }
 
-    private Image<Rgba32> FindTable()
-    {
-        double grayThreshold = 0.95;
-
-        int keyboardTop = FirstGrayRow(grayThreshold);
-        int tableTop = FirtTableRow();
-
-        int keyboardLeft = FirstNonWhiteColumn();
-        int keyboardRight = FirstWhiteColumn(keyboardLeft);
-
-        var cropped = ImageToParse.Clone((IImageProcessingContext ctx) =>
+        int keyboardLeft = FirstNonWhiteColumn(image);
+        int keyboardRight = FirstWhiteColumn(image, keyboardLeft, 0.9);
+        image = image.Clone((IImageProcessingContext ctx) =>
             ctx.Crop(new Rectangle(
                 keyboardLeft,
-                tableTop,
+                0,
                 keyboardRight - keyboardLeft,
-                keyboardTop - tableTop)));
+                image.Height)));
+
+        var size = new Rectangle(keyboardLeft, keyboardTop, image.Width, image.Height);
+        return (image, size);
+    }
+
+    private Image<Rgba32> FindTable(Rectangle keyboardSize)
+    {
+        double threshold = 0.60;
+
+        int tableTop = FirstTableRow(threshold);
+        var cropped = ImageToParse.Clone((IImageProcessingContext ctx) =>
+            ctx.Crop(new Rectangle(
+                keyboardSize.Left,
+                tableTop,
+                keyboardSize.Width,
+                keyboardSize.Top - tableTop)));
 
         return cropped;
-    }
-
-    private int FirtTableRow()
-    {
-        for (int y = 0; y < ImageToParse.Height; y++)
-        {
-            if (!IsTableRow(y))
-                return y;
-        }
-        return 0;
-    }
-
-    private bool IsTableRow(int y)
-    {
-        int keyColor = 0;
-        int whiteOrGray = 0;
-
-        for (int x = 0; x < ImageToParse.Width / 8; x++)
-        {
-            var pixel = ImageToParse[x, y];
-            if (IsWhite(pixel) || IsGray(pixel))
-            {
-                whiteOrGray++;
-                continue;
-            }
-
-            if (IsGreen(pixel) || IsPurple(pixel) || IsBlack(pixel))
-            {
-                keyColor++;
-                continue;
-            }
-        }
-
-        return keyColor > whiteOrGray;
     }
 
     private int FirstGrayRow(double threshold)
@@ -236,6 +221,16 @@ internal class ImageParser(Stream stream)
         for (int y = 0; y < ImageToParse.Height; y++)
         {
             if (IsMostlyGrayRow(y, threshold))
+                return y;
+        }
+        return 0;
+    }
+
+    private int FirstTableRow(double threshold)
+    {
+        for (int y = 0; y < ImageToParse.Height; y++)
+        {
+            if (IsTableRow(y, threshold))
                 return y;
         }
         return 0;
@@ -263,35 +258,36 @@ internal class ImageParser(Stream stream)
         return (double)grayPixels / ImageToParse.Width >= threshold;
     }
 
-    private int FirstNonWhiteColumn()
+    private static int FirstNonWhiteColumn(Image<Rgba32> image, double threshold = 0.95)
     {
-        for (int x = 0; x < ImageToParse.Width; x++)
+        for (int x = 0; x < image.Width; x++)
         {
-            if (!IsFullyWhiteColumn(x))
+            if (!IsFullyWhiteColumn(image, x, threshold))
                 return x;
         }
         return -1;
     }
 
-    private int FirstWhiteColumn(int startColumn)
+    private static int FirstWhiteColumn(Image<Rgba32> image, int startColumn, double threshold)
     {
-        for (int x = startColumn; x < ImageToParse.Width; x++)
+        for (int x = startColumn; x < image.Width; x++)
         {
-            if (IsFullyWhiteColumn(x))
+            if (IsFullyWhiteColumn(image, x, threshold))
                 return x;
         }
         return -1;
     }
 
-    private bool IsFullyWhiteColumn(int x)
+    private static bool IsFullyWhiteColumn(Image<Rgba32> image, int x, double threshold)
     {
-        for (int y = 0; y < ImageToParse.Height; y++)
+        int whitePixels = 0;
+        for (int y = 0; y < image.Height; y++)
         {
-            var pixel = ImageToParse[x, y];
-            if (!IsWhite(pixel)) return false;
+            var pixel = image[x, y];
+            if (IsWhite(pixel)) whitePixels++;
         }
 
-        return true;
+        return (double)whitePixels / image.Height >= threshold;
     }
 
     // rgb(245, 246, 249)
@@ -351,12 +347,12 @@ internal class ImageParser(Stream stream)
         return pattern;
     }
 
-    private Image<Rgba32> SkipHeader()
+    private Image<Rgba32> SkipHeader(double threshold = 0.6)
     {
         int headerHeight = 0;
         for (; headerHeight < ImageToParse.Height; headerHeight++)
         {
-            if (IsFullyWhiteRow(headerHeight))
+            if (IsTableRow(headerHeight, threshold))
                 break;
         }
 
@@ -368,10 +364,11 @@ internal class ImageParser(Stream stream)
     public (string expected, string unexpected, string pattern) Parse()
     {
         ImageToParse = SkipHeader();
-        var table = FindTable();
         var keyboard = FindKeyboard();
+        keyboard.image.SaveAsPng($"keyboard.png");
+        var table = FindTable(keyboard.size);
         var tableInfo = ExtractTableData(table).ToList();
-        var keysInfo = ExtractButtons(keyboard, keys, 0).Union(ExtractButtons(keyboard, operations, 1)).ToList();
+        var keysInfo = ExtractButtons(keyboard.image, keys, 0).Union(ExtractButtons(keyboard.image, operations, 1)).ToList();
 
         var expected = keysInfo.Where(x => x.Color is ColorType.Green or ColorType.Purple).Select(x => x.Text).ToList();
         var unexpected = keysInfo.Where(x => x.Color is ColorType.Black).Select(x => x.Text).ToList();
