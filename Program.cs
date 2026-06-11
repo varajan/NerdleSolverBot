@@ -5,7 +5,7 @@ using Telegram.Bot.Polling;
 using Telegram.Bot.Types;
 
 var stage = Stage.ShowAll;
-var botToken = "...:...";
+var botToken = File.ReadAllText("botId.txt");
 var nerdle = new Nerdle();
 var botClient = new TelegramBotClient(botToken);
 var receiverOptions = new ReceiverOptions { AllowedUpdates = [] };
