@@ -177,7 +177,7 @@ internal class ImageParser(Stream stream)
 
     private (Image<Rgba32> image, Rectangle size) FindKeyboard()
     {
-        double grayThreshold = 0.9;
+        double grayThreshold = 0.8;
 
         int keyboardTop = FirstGrayRow(grayThreshold);
         int keyboardBottom = LastGrayRow(keyboardTop, grayThreshold);
@@ -300,8 +300,9 @@ internal class ImageParser(Stream stream)
     // rgb(135, 46, 108)
     // rgb(127, 35, 99)
     // rgb(128, 4, 88)
+    // rgb(130, 4, 129)
     private static bool IsPurple(Rgba32 pixel) =>
-        (pixel.R is > 125 and < 140) && pixel.G is < 50 && pixel.B is > 85 and < 110;
+        (pixel.R is > 125 and < 140) && pixel.G is < 50 && pixel.B is > 85 and < 130;
 
     // rgb(60, 136, 117)
     private static bool IsGreen(Rgba32 pixel) =>
@@ -365,7 +366,6 @@ internal class ImageParser(Stream stream)
     {
         ImageToParse = SkipHeader();
         var keyboard = FindKeyboard();
-        keyboard.image.SaveAsPng($"keyboard.png");
         var table = FindTable(keyboard.size);
         var tableInfo = ExtractTableData(table).ToList();
         var keysInfo = ExtractButtons(keyboard.image, keys, 0).Union(ExtractButtons(keyboard.image, operations, 1)).ToList();
