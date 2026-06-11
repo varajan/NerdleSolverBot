@@ -22,6 +22,9 @@
   </ItemGroup>
 
   <ItemGroup>
+    <None Update="botId.txt">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
     <None Update="Tests\Images\001.jpg">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
