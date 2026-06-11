@@ -1,7 +1,7 @@
 ﻿using System.Data;
 using System.Text.RegularExpressions;
 
-namespace NerdleSolver;
+namespace NerdleSolver.Application;
 
 internal class Nerdle
 {

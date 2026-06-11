@@ -1,4 +1,4 @@
-﻿using NerdleSolver;
+﻿using NerdleSolver.Application;
 using System.Text;
 using Telegram.Bot;
 using Telegram.Bot.Polling;
