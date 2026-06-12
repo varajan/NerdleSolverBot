@@ -1,5 +1,5 @@
 <Solution>
-  <Project Path="../NerdleSolverApp/NerdleSolverApp.csproj" Id="b9c7dfad-b321-42d0-a37a-42d31ae31996" />
-  <Project Path="../NerdleSolverTests/NerdleSolverTests.csproj" Id="3a7acfb3-c5d0-454e-8f56-71f8a5bac662" />
-  <Project Path="NerdleSolverBot.csproj" />
+  <Project Path="NerdleSolverApp/NerdleSolverApp.csproj" Id="b9c7dfad-b321-42d0-a37a-42d31ae31996" />
+  <Project Path="NerdleSolverTests/NerdleSolverTests.csproj" Id="3a7acfb3-c5d0-454e-8f56-71f8a5bac662" />
+  <Project Path="NerdleSolverBot/NerdleSolverBot.csproj" />
 </Solution>

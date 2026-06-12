@@ -1,6 +1,6 @@
 .vs/*
-bin/*
-obj/*
+*/bin/*
+*/obj/*
 Properties/*
-NerdleSolver.csproj.user
+*/*.user
 sixlabors.lic
