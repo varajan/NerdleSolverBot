@@ -16,8 +16,8 @@ internal class ImageParserTests
         yield return new TestCaseData("004.jpg", "2670", "134589+*/", "[^16][^28][^+/][^39][^5*][^=0]=7");
         yield return new TestCaseData("005.jpg", "125/", "3467890+*", "[^16][^28][^+/][^39]5=[^4=][^70]");
         yield return new TestCaseData("006.jpg", "16789-/", "23450+*", "[^7][^/]1[^9][^8][^6][^/][^=]");
-        //yield return new TestCaseData("007.jpg", "", "", ".*");
-        //yield return new TestCaseData("008.jpg", "", "", ".*");
+        yield return new TestCaseData("007.jpg", "2469+", "135780*/", "6[^28][^+/][^39][^5*]=[^4=][^70]");
+        yield return new TestCaseData("008.jpg", "15678-/", "23490+*", "[^8][^/][^7][^1][^-][^=][^6]5");
         //yield return new TestCaseData("009.jpg", "", "", ".*");
         //yield return new TestCaseData("010.jpg", "", "", ".*");
         //yield return new TestCaseData("011.jpg", "", "", ".*");
