@@ -1,4 +1,5 @@
-﻿using SixLabors.ImageSharp;
+﻿using NerdleSolverApp.Extensions;
+using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
 
@@ -10,8 +11,9 @@ public class ImageParser(Stream stream)
     private readonly string[] keys = { "1", "2", "3", "4", "5", "6", "7", "8", "9", "0" };
     private readonly string[] operations = { "+", "-", "*", "/" };
 
-    private IEnumerable<CellInfo[]> ExtractTableData(Image<Rgba32> tableImage)
+    private static IEnumerable<CellInfo[]> ExtractTableData(Image<Rgba32> tableImage)
     {
+        tableImage.SaveAsPng("table.png");
         var rowHeight = GetRowHeight(tableImage);
 
         for (var i = 0; i < 10; i++)
@@ -25,15 +27,16 @@ public class ImageParser(Stream stream)
 
     private static CellInfo[] ExtractRowData(Image<Rgba32> tableImage, int row, int rowHeight)
     {
+        var delta = 5;
         var result = new CellInfo[8];
         var cellWidth = tableImage.Width / result.Length;
 
         for (var i = 0; i < result.Length; i++)
         {
             var cellImage = tableImage.Clone((IImageProcessingContext ctx) =>
-                ctx.Crop(new Rectangle(i * cellWidth, row * rowHeight, cellWidth, rowHeight)));
+                ctx.Crop(new Rectangle((i * cellWidth) + delta, (row * rowHeight) + delta, cellWidth - (2 * delta), rowHeight - (2 * delta))));
             var text = GetCellText(cellImage);
-            var color = GetColor(cellImage);
+            var color = cellImage.GetColor();
 
             result[i] = new CellInfo(text, color);
         }
@@ -43,75 +46,30 @@ public class ImageParser(Stream stream)
 
     private static string GetCellText(Image<Rgba32> cellImage)
     {
-        // not implemented yet
+        return ""; // TODO: Implement OCR to extract text from the cell image"
+
+        var blkAndWhite = cellImage.GetBlackAndWhite();
+        var normilized = blkAndWhite.Normilized();
+        normilized = normilized.Normilized();
+        //var trimmed = normilized.Trim();
+        var fileCount = Directory.GetFiles(Directory.GetCurrentDirectory(), "*.png").Length;
+        normilized.SaveAsPng($"{fileCount + 1}.png");
         return "";
     }
 
-    private int GetRowHeight(Image<Rgba32> tableImage)
+    private static int GetRowHeight(Image<Rgba32> tableImage)
     {
         var height = 0;
 
-        // find where white lines begin
-        if (IsFullyBlackRow(height))
-            for (; height < tableImage.Height; height++)
-            {
-                if (IsFullyWhiteRow(height))
-                    break;
-            }
-
-        // find where white lines end
-        if (IsFullyWhiteRow(height))
-            for (; height < tableImage.Height; height++)
-            {
-                if (!IsFullyWhiteRow(height))
-                    break;
-            }
-
         for (; height < tableImage.Height; height++)
         {
-            if (IsFullyWhiteRow(height))
+            if (tableImage.IsMostlyColor(ColorType.White, height, threshold: 0.9))
                 break;
         }
 
-        return height;
-    }
+        var nextPossibleHeight = FirstTableRow(tableImage, 0.6, height);
 
-    private bool IsFullyWhiteRow(int y, double tolerance = 0.95)
-    {
-        int white = 0;
-        for (int x = 0; x < ImageToParse.Width; x++)
-        {
-            var pixel = ImageToParse[x, y];
-            if (IsWhite(pixel)) white++;
-        }
-
-        return (double)white / ImageToParse.Width >= tolerance;
-    }
-
-    private bool IsFullyBlackRow(int y)
-    {
-        for (int x = 0; x < ImageToParse.Width; x++)
-        {
-            var pixel = ImageToParse[x, y];
-            if (!IsBlack(pixel)) return false;
-        }
-        return true;
-    }
-
-    private bool IsTableRow(int y, double tolerance)
-    {
-        int keyColor = 0;
-        for (int x = 0; x < ImageToParse.Width; x++)
-        {
-            var pixel = ImageToParse[x, y];
-
-            if (IsGreen(pixel) || IsPurple(pixel) || IsBlack(pixel))
-            {
-                keyColor++;
-                continue;
-            }
-        }
-        return (double)keyColor / ImageToParse.Width >= tolerance;
+        return nextPossibleHeight == 0 ? height : nextPossibleHeight;
     }
 
     private static IEnumerable<CellInfo> ExtractButtons(Image<Rgba32> keyboardImage, string[] buttonLabels, int row)
@@ -123,64 +81,24 @@ public class ImageParser(Stream stream)
         {
             var cellImage = keyboardImage.Clone((IImageProcessingContext ctx) =>
                 ctx.Crop(new Rectangle(i * cellWidth, row * cellHeight, cellWidth, cellHeight)));
-            var color = GetColor(cellImage);
+            var color = cellImage.GetColor();
+
+            //--
+            var blkAndWhite = cellImage.GetBlackAndWhite(color);
+            var normilized = blkAndWhite.Normilized();
+            normilized.SaveAsPng($"keyboard_cell_{row}_{i}.png");
+            //--
+
             yield return new CellInfo(buttonLabels[i], color);
         }
-    }
-
-    private static ColorType GetColor(Image<Rgba32> cellImage)
-    {
-        int threshold = cellImage.Width * cellImage.Height / 10;
-        int white = 0;
-        int green = 0;
-        int purple = 0;
-        int black = 0;
-
-        for (var i = 0; i < cellImage.Width; i++)
-        {
-            for (var j = 0; j < cellImage.Height; j++)
-            {
-                var pixel = cellImage[i, j];
-
-                if (IsWhite(pixel))
-                {
-                    white++;
-                    if (white > threshold) return ColorType.White;
-                    continue;
-                }
-
-                if (IsGreen(pixel))
-                {
-                    green++;
-                    if (green > threshold) return ColorType.Green;
-                    continue;
-                }
-
-                if (IsPurple(pixel))
-                {
-                    purple++;
-                    if (purple > threshold) return ColorType.Purple;
-                    continue;
-                }
-
-                if (IsBlack(pixel))
-                {
-                    black++;
-                    if (black > threshold) return ColorType.Black;
-                    continue;
-                }
-            }
-        }
-
-        return ColorType.White;
     }
 
     private (Image<Rgba32> image, Rectangle size) FindKeyboard()
     {
         double grayThreshold = 0.8;
 
-        int keyboardTop = FirstGrayRow(grayThreshold);
-        int keyboardBottom = LastGrayRow(keyboardTop, grayThreshold);
+        int keyboardTop = ImageToParse.FirstWithColor(ColorType.Gray, threshold: grayThreshold);
+        int keyboardBottom = ImageToParse.LastWithColor(ColorType.Gray, threshold: grayThreshold);
         var image = ImageToParse.Clone((IImageProcessingContext ctx) =>
             ctx.Crop(new Rectangle(
                 0,
@@ -188,13 +106,13 @@ public class ImageParser(Stream stream)
                 ImageToParse.Width,
                 keyboardBottom - keyboardTop)));
 
-        int keyboardLeft = FirstNonWhiteColumn(image);
-        int keyboardRight = FirstWhiteColumn(image, keyboardLeft, 0.9);
+        int keyboardLeft = ImageToParse.FirstWithoutColor(ColorType.White, row: false, threshold: 0.95);
+        int keyboardRight = 0;
         image = image.Clone((IImageProcessingContext ctx) =>
             ctx.Crop(new Rectangle(
                 keyboardLeft,
                 0,
-                keyboardRight - keyboardLeft,
+                image.Width - keyboardLeft - keyboardRight,
                 image.Height)));
 
         var size = new Rectangle(keyboardLeft, keyboardTop, image.Width, image.Height);
@@ -205,7 +123,7 @@ public class ImageParser(Stream stream)
     {
         double threshold = 0.60;
 
-        int tableTop = FirstTableRow(threshold);
+        int tableTop = FirstTableRow(ImageToParse, threshold);
         var cropped = ImageToParse.Clone((IImageProcessingContext ctx) =>
             ctx.Crop(new Rectangle(
                 keyboardSize.Left,
@@ -216,102 +134,15 @@ public class ImageParser(Stream stream)
         return cropped;
     }
 
-    private int FirstGrayRow(double threshold)
+    private static int FirstTableRow(Image<Rgba32> image, double threshold, int startRow = 0)
     {
-        for (int y = 0; y < ImageToParse.Height; y++)
+        for (int y = startRow; y < image.Height; y++)
         {
-            if (IsMostlyGrayRow(y, threshold))
+            if (image.IsMostlyColors([ColorType.Green, ColorType.Purple, ColorType.Black], y, threshold: threshold))
                 return y;
         }
         return 0;
     }
-
-    private int FirstTableRow(double threshold)
-    {
-        for (int y = 0; y < ImageToParse.Height; y++)
-        {
-            if (IsTableRow(y, threshold))
-                return y;
-        }
-        return 0;
-    }
-
-    private int LastGrayRow(int startRow, double threshold)
-    {
-        for (int y = ImageToParse.Height - 1; y >= startRow; y--)
-        {
-            if (IsMostlyGrayRow(y, threshold))
-                return y;
-        }
-        return ImageToParse.Height - 1;
-    }
-
-    private bool IsMostlyGrayRow(int y, double threshold)
-    {
-        int grayPixels = 0;
-        for (int x = 0; x < ImageToParse.Width; x++)
-        {
-            var pixel = ImageToParse[x, y];
-            if (IsGray(pixel)) grayPixels++;
-        }
-
-        return (double)grayPixels / ImageToParse.Width >= threshold;
-    }
-
-    private static int FirstNonWhiteColumn(Image<Rgba32> image, double threshold = 0.95)
-    {
-        for (int x = 0; x < image.Width; x++)
-        {
-            if (!IsFullyWhiteColumn(image, x, threshold))
-                return x;
-        }
-        return -1;
-    }
-
-    private static int FirstWhiteColumn(Image<Rgba32> image, int startColumn, double threshold)
-    {
-        for (int x = startColumn; x < image.Width; x++)
-        {
-            if (IsFullyWhiteColumn(image, x, threshold))
-                return x;
-        }
-        return -1;
-    }
-
-    private static bool IsFullyWhiteColumn(Image<Rgba32> image, int x, double threshold)
-    {
-        int whitePixels = 0;
-        for (int y = 0; y < image.Height; y++)
-        {
-            var pixel = image[x, y];
-            if (IsWhite(pixel)) whitePixels++;
-        }
-
-        return (double)whitePixels / image.Height >= threshold;
-    }
-
-    // rgb(245, 246, 249)
-    private static bool IsWhite(Rgba32 pixel) => pixel.R > 240 && pixel.G > 240 && pixel.B > 240;
-
-    // rgb(223, 227, 238)
-    private static bool IsGray(Rgba32 pixel) =>
-        (pixel.R is > 220 and < 240) && (pixel.G is > 220 and < 240) && (pixel.B is > 220 and < 240);
-
-    // rgb(135, 46, 108)
-    // rgb(127, 35, 99)
-    // rgb(128, 4, 88)
-    // rgb(130, 4, 129)
-    private static bool IsPurple(Rgba32 pixel) =>
-        (pixel.R is > 125 and < 140) && pixel.G is < 50 && pixel.B is > 85 and < 130;
-
-    // rgb(60, 136, 117)
-    private static bool IsGreen(Rgba32 pixel) =>
-        (pixel.R is > 55 and < 65) && (pixel.G is > 130 and < 140) && (pixel.B is > 110 and < 120);
-
-    // rgb(22, 24, 3)
-    // rgb(24, 25, 12)
-    private static bool IsBlack(Rgba32 pixel) =>
-        (pixel.R is > 20 and < 30) && (pixel.G is > 20 and < 30) && (pixel.B < 20);
 
     private string GetPattern(List<CellInfo[]> tableInfo)
     {
@@ -353,7 +184,7 @@ public class ImageParser(Stream stream)
         int headerHeight = 0;
         for (; headerHeight < ImageToParse.Height; headerHeight++)
         {
-            if (IsTableRow(headerHeight, threshold))
+            if (ImageToParse.IsMostlyColors([ColorType.Green, ColorType.Purple, ColorType.Black], headerHeight, threshold: threshold))
                 break;
         }
 
@@ -367,6 +198,9 @@ public class ImageParser(Stream stream)
         ImageToParse = SkipHeader();
         var keyboard = FindKeyboard();
         var table = FindTable(keyboard.size);
+
+        table.SaveAsPng("extracted_table.png");
+
         var tableInfo = ExtractTableData(table).ToList();
         var keysInfo = ExtractButtons(keyboard.image, keys, 0).Union(ExtractButtons(keyboard.image, operations, 1)).ToList();
 
