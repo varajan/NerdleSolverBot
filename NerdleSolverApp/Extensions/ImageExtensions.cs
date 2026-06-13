@@ -41,48 +41,129 @@ internal static class ImageExtensions
 
     public static Image<Rgba32> Trim(this Image<Rgba32> image)
     {
-        var threshold = 0.95;
-        var i = 0;
+        var threshold = 1;
 
-        for (; i < image.Height; i++)
+        int x0 = 0;
+        for (; x0 < image.Width; x0++)
         {
-            if (!image.IsMostlyColor(ColorType.Black, i, threshold: threshold)) break;
+            if (!image.IsMostlyColor(ColorType.Black, x0, row: false, threshold: threshold)) break;
         }
 
-        image = image.Clone((IImageProcessingContext ctx) =>
-            ctx.Crop(new Rectangle(0, i, image.Width, image.Height - i)));
+        int y0 = 0;
+        for (; y0 < image.Height; y0++)
+        {
+            if (!image.IsMostlyColor(ColorType.Black, y0, row: true, threshold: threshold)) break;
+        }
 
+        int x1 = image.Width - 1;
+        for (; x1 > x0; x1--)
+        {
+            if (!image.IsMostlyColor(ColorType.Black, x1, row: false, threshold: threshold)) break;
+        }
+
+        int y1 = image.Height - 1;
+        for (; y1 > y0; y1--)
+        {
+            if (!image.IsMostlyColor(ColorType.Black, y1, row: true, threshold: threshold)) break;
+        }
+
+        image = image.Clone((IImageProcessingContext ctx) => ctx.Crop(new Rectangle(x0, y0, x1 - x0, y1 - y0)));
 
         return image;
     }
 
-    public static Image<Rgba32> Normilized(this Image<Rgba32> image)
+    public static Image<Rgba32> Normilized(this Image<Rgba32> image) =>
+        image.CutWhiteEdges().CutCorners(ColorType.White, ColorType.Black).Trim();
+
+    private static Image<Rgba32> CutWhiteEdges(this Image<Rgba32> image)
     {
         var firstNotWhiteColumn = image.FirstWithoutColor(ColorType.White, row: false, threshold: 0.95);
         var firstNotWhiteRow = image.FirstWithoutColor(ColorType.White, threshold: 0.95);
-        //var firstNotWhiteColumn = FirstNonWhiteColumn(image);
-        //var firstNotWhiteRow = FirstNonWhiteRow(image);
         firstNotWhiteColumn = firstNotWhiteColumn < 5 ? 5 : firstNotWhiteColumn;
         firstNotWhiteRow = firstNotWhiteRow < 5 ? 5 : firstNotWhiteRow;
 
-        var result = image.Clone((IImageProcessingContext ctx) =>
+        image = image.Clone((IImageProcessingContext ctx) =>
             ctx.Crop(new Rectangle(
                 firstNotWhiteColumn,
                 firstNotWhiteRow,
                 image.Width - firstNotWhiteColumn,
                 image.Height - firstNotWhiteRow)));
 
-        var width = result.FirstWithColor(ColorType.White, row: false, threshold: 0.95);
-        var height = result.FirstWithColor(ColorType.White, threshold: 0.95);
-        //var width = FirstWhiteColumn(result);
-        //var height = FirstWhiteRow(result);
-        width = width <= 0 ? result.Width : width;
-        height = height <= 0 ? result.Height : height;
+        var width = image.FirstWithColor(ColorType.White, row: false, threshold: 0.95);
+        var height = image.FirstWithColor(ColorType.White, threshold: 0.95);
+        width = width <= 0 ? image.Width : width;
+        height = height <= 0 ? image.Height : height;
 
-        result = result.Clone((IImageProcessingContext ctx) =>
+        image = image.Clone((IImageProcessingContext ctx) =>
             ctx.Crop(new Rectangle(0, 0, width, height)));
 
-        return result;
+        return image;
+    }
+
+    private static Image<Rgba32> CutCorners(this Image<Rgba32> image, ColorType colorToDelete, ColorType colorToSet)
+    {
+        image = image.CutCorner(colorToDelete, colorToSet, 0, 0);
+        image = image.CutCorner(colorToDelete, colorToSet, 0, image.Height - 1);
+        image = image.CutCorner(colorToDelete, colorToSet, image.Width - 1, 0);
+        image = image.CutCorner(colorToDelete, colorToSet, image.Width - 1, image.Height - 1);
+
+        return image;
+    }
+
+    private static Image<Rgba32> CutCorner(this Image<Rgba32> image, ColorType colorToDelete, ColorType colorToSet, int x, int y)
+    {
+        var corner = image[x, y];
+        var color = corner.GetColor();
+        if (corner.GetColor() == colorToSet) return image;
+
+        // calculate widht
+        int width = 1;
+        if (x == 0)
+        {
+            for (; width < image.Width; width++)
+            {
+                if (image[width, y].GetColor() != colorToDelete) break;
+                width++;
+            }
+        }
+        else
+        {
+            for (; width < image.Width; width++)
+            {
+                if (image[x - width, y].GetColor() != colorToDelete) break;
+                width++;
+            }
+        }
+
+        // calculate height
+        int height = 1;
+        if (y == 0)
+        {
+            for (; height < image.Height; height++)
+            {
+                if (image[y, height].GetColor() != colorToDelete) break;
+                height++;
+            }
+        }
+        else
+        {
+            for (; height < image.Height; height++)
+            {
+                if (image[x, y - height].GetColor() != colorToDelete) break;
+                height++;
+            }
+        }
+
+        var cutRectangle = (x, y) switch
+        {
+            (0, 0) => new Rectangle(width, height, image.Width - width, image.Height - height),
+            (0, _) => new Rectangle(0, 0, image.Width - width, image.Height - height),
+            (_, 0) => new Rectangle(0, height, image.Width, image.Height - height),
+            (_, _) => new Rectangle(0, 0, image.Width - width, image.Height - height)
+        };
+
+        image = image.Clone((IImageProcessingContext ctx) => ctx.Crop(cutRectangle));
+        return image;
     }
 
     public static int FirstWithoutColor(this Image<Rgba32> image, ColorType color, bool row = true, double threshold = 0.95)

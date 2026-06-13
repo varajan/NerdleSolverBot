@@ -35,6 +35,5 @@ internal static class PixelExtensions
 
     // rgb(22, 24, 3)
     // rgb(24, 25, 12)
-    public static bool IsBlack(this Rgba32 pixel) =>
-        (pixel.R is > 20 and < 30) && (pixel.G is > 20 and < 30) && (pixel.B < 20);
+    public static bool IsBlack(this Rgba32 pixel) => (pixel.R is < 30) && (pixel.G < 30) && (pixel.B < 20);
 }

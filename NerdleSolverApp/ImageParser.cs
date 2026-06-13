@@ -27,7 +27,7 @@ public class ImageParser(Stream stream)
 
     private static CellInfo[] ExtractRowData(Image<Rgba32> tableImage, int row, int rowHeight)
     {
-        var delta = 5;
+        var delta = 15;
         var result = new CellInfo[8];
         var cellWidth = tableImage.Width / result.Length;
 
@@ -46,12 +46,9 @@ public class ImageParser(Stream stream)
 
     private static string GetCellText(Image<Rgba32> cellImage)
     {
-        return ""; // TODO: Implement OCR to extract text from the cell image"
-
-        var blkAndWhite = cellImage.GetBlackAndWhite();
+        var color = cellImage.GetColor();
+        var blkAndWhite = cellImage.GetBlackAndWhite(color);
         var normilized = blkAndWhite.Normilized();
-        normilized = normilized.Normilized();
-        //var trimmed = normilized.Trim();
         var fileCount = Directory.GetFiles(Directory.GetCurrentDirectory(), "*.png").Length;
         normilized.SaveAsPng($"{fileCount + 1}.png");
         return "";
@@ -76,11 +73,12 @@ public class ImageParser(Stream stream)
     {
         var cellWidth = keyboardImage.Width / 10;
         var cellHeight = keyboardImage.Height / 2;
+        var delta = 10;
 
         for (var i = 0; i < buttonLabels.Length; i++)
         {
             var cellImage = keyboardImage.Clone((IImageProcessingContext ctx) =>
-                ctx.Crop(new Rectangle(i * cellWidth, row * cellHeight, cellWidth, cellHeight)));
+                ctx.Crop(new Rectangle((i * cellWidth) + delta, (row * cellHeight) + delta, cellWidth - (2 * delta), cellHeight - (2 * delta))));
             var color = cellImage.GetColor();
 
             //--
@@ -198,8 +196,6 @@ public class ImageParser(Stream stream)
         ImageToParse = SkipHeader();
         var keyboard = FindKeyboard();
         var table = FindTable(keyboard.size);
-
-        table.SaveAsPng("extracted_table.png");
 
         var tableInfo = ExtractTableData(table).ToList();
         var keysInfo = ExtractButtons(keyboard.image, keys, 0).Union(ExtractButtons(keyboard.image, operations, 1)).ToList();
