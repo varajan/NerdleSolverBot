@@ -9,7 +9,7 @@ public class ImageParser(Stream stream)
 {
     private Image<Rgba32> ImageToParse = Image.Load<Rgba32>(stream);
     private readonly string[] keys = { "1", "2", "3", "4", "5", "6", "7", "8", "9", "0" };
-    private readonly string[] operations = { "+", "-", "*", "/" };
+    private readonly string[] operations = { "+", "-", "*", "/", "=" };
 
     private static string GetKeyboardFileName(string key) =>
         key switch
@@ -18,6 +18,7 @@ public class ImageParser(Stream stream)
             "-" => "key_minus.png",
             "*" => "key_multiply.png",
             "/" => "key_divide.png",
+            "=" => "key_equals.png",
             _ => $"key_{key}.png",
         };
 
@@ -60,6 +61,7 @@ public class ImageParser(Stream stream)
         cellImage.SaveAsPng("cellImage.png");
         var key = cellImage.GetBlackAndWhite(color).Normilized();
         var allKeys = keys.Concat(operations);
+        key.Mutate(x => x.Resize(30, 35));
 
         var result = new List<(string key, double difference)>();
 
@@ -71,9 +73,13 @@ public class ImageParser(Stream stream)
             result.Add((k, difference));
         }
 
-        var xxx = result.OrderByDescending(x => x.difference).First().key;
+        // 24x35 - cell
+        // 25x35
+        key.SaveAsPng("cell-as-key.png");
 
-        return result.OrderByDescending(x => x.difference).First().key;
+        var xxx = result.OrderBy(x => x.difference).First().key;
+
+        return result.OrderBy(x => x.difference).First().key;
     }
 
     private static double CalculateDifference(Image<Rgba32> imageA, Image<Rgba32> imageB)
@@ -122,6 +128,8 @@ public class ImageParser(Stream stream)
 
             cellImage.SaveAsPng("cellImage.png");
             var button = cellImage.GetBlackAndWhite(color).Normilized();
+
+            button.Mutate(x => x.Resize(30, 35));
             button.SaveAsPng(GetKeyboardFileName(buttonLabels[i]));
 
             yield return new CellInfo(buttonLabels[i], color);
@@ -195,7 +203,7 @@ public class ImageParser(Stream stream)
             if (green is not null)
             {
                 var key = green.Text;
-                pattern += operations.Contains(key) ? $"\\{key}" : key;
+                pattern += operations.Contains(key) && key != "=" ? $"\\{key}" : key;
                 continue;
             }
 
@@ -260,7 +268,7 @@ public class ImageParser(Stream stream)
 
         return (
             expected: string.Join("", expected),
-            unexpected: expected.Count == 7 ? string.Join("", white) : string.Join("", unexpected),
+            unexpected: expected.Count == 8 ? string.Join("", white) : string.Join("", unexpected),
             pattern: GetPattern(tableInfo));
     }
 }
