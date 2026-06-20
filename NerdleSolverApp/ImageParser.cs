@@ -62,6 +62,12 @@ public class ImageParser(Stream stream)
     {
         var color = cellImage.GetColor();
         cellImage.SaveAsPng("cellImage.png");
+
+        var key1 = cellImage.GetBlackAndWhite(color);
+        key1.SaveAsPng("key1-1.png");
+        key1 = key1.Normilized();
+        key1.SaveAsPng("key1-2.png");
+
         var key = cellImage.GetBlackAndWhite(color).Normilized();
         var allKeys = keys.Concat(operations);
         key.Mutate(x => x.Resize(cellMutateWidth, cellMutateHeight));
@@ -78,7 +84,9 @@ public class ImageParser(Stream stream)
 
         // 24x35 - cell
         // 25x35
-        key.SaveAsPng("cell-as-key.png");
+        //var filesCount = Directory.GetFiles().Count(x => x.Contains(".png"));
+        int count = Directory.GetFiles(".", "*.png").Length;
+        key.SaveAsPng($"cell-as-key-{count}.png");
 
         var xxx = result.OrderBy(x => x.difference).ToList();
 

@@ -37,8 +37,7 @@ async Task HandleUpdateAsync(
         {
             await ParseImage();
             await SendMessage($"Must: {nerdle.Expected}\r\nForbidden: {nerdle.Unexpected}\r\nPattern: {nerdle.Pattern}");
-            //await Calculate();
-            // todo: uncomment when pattern is not empty
+            await Calculate();
         }
         catch (Exception ex)
         {

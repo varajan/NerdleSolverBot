@@ -11,7 +11,6 @@ internal static class PixelExtensions
         if (pixel.IsPurple()) return ColorType.Purple;
         if (pixel.IsBlack()) return ColorType.Black;
         if (pixel.IsGray()) return ColorType.Gray;
-        //if (pixel.IsDarkGray()) return ColorType.DarkGray;
 
         return ColorType.Undefined;
     }
