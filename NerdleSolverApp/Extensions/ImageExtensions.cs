@@ -67,10 +67,7 @@ internal static class ImageExtensions
             if (!image.IsMostlyColor(ColorType.Black, y1, row: true, threshold: threshold)) break;
         }
 
-        image.SaveAsPng("image.png");
-
         image = image.Clone((IImageProcessingContext ctx) => ctx.Crop(new Rectangle(x0, y0, x1 - x0, y1 - y0)));
-
         return image;
     }
 
@@ -163,7 +160,6 @@ internal static class ImageExtensions
             (_, _) => new Rectangle(0, 0, image.Width - width, image.Height - height)
         };
 
-        image.SaveAsPng("CutCorner.png");
         image = image.Clone((IImageProcessingContext ctx) => ctx.Crop(cutRectangle));
         return image;
     }

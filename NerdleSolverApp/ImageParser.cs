@@ -27,7 +27,6 @@ public class ImageParser(Stream stream)
 
     private IEnumerable<CellInfo[]> ExtractTableData(Image<Rgba32> tableImage)
     {
-        tableImage.SaveAsPng("table.png");
         var rowHeight = GetRowHeight(tableImage);
 
         for (var i = 0; i < 10; i++)
@@ -61,13 +60,6 @@ public class ImageParser(Stream stream)
     private string GetCellText(Image<Rgba32> cellImage)
     {
         var color = cellImage.GetColor();
-        cellImage.SaveAsPng("cellImage.png");
-
-        var key1 = cellImage.GetBlackAndWhite(color);
-        key1.SaveAsPng("key1-1.png");
-        key1 = key1.Normilized();
-        key1.SaveAsPng("key1-2.png");
-
         var key = cellImage.GetBlackAndWhite(color).Normilized();
         var allKeys = keys.Concat(operations);
         key.Mutate(x => x.Resize(cellMutateWidth, cellMutateHeight));
@@ -81,14 +73,6 @@ public class ImageParser(Stream stream)
 
             result.Add((k, difference));
         }
-
-        // 24x35 - cell
-        // 25x35
-        //var filesCount = Directory.GetFiles().Count(x => x.Contains(".png"));
-        int count = Directory.GetFiles(".", "*.png").Length;
-        key.SaveAsPng($"cell-as-key-{count}.png");
-
-        var xxx = result.OrderBy(x => x.difference).ToList();
 
         return result.OrderBy(x => x.difference).First().key;
     }
@@ -136,10 +120,7 @@ public class ImageParser(Stream stream)
             var cellImage = keyboardImage.Clone((IImageProcessingContext ctx) =>
                 ctx.Crop(new Rectangle((i * cellWidth) + delta, (row * cellHeight) + delta, cellWidth - (2 * delta), cellHeight - (2 * delta))));
             var color = cellImage.GetColor();
-
-            cellImage.SaveAsPng("cellImage.png");
             var button = cellImage.GetBlackAndWhite(color).Normilized();
-
             button.Mutate(x => x.Resize(cellMutateWidth, cellMutateHeight));
             button.SaveAsPng(GetKeyboardFileName(buttonLabels[i]));
 
@@ -150,7 +131,6 @@ public class ImageParser(Stream stream)
     private (Image<Rgba32> image, Rectangle size) FindKeyboard()
     {
         double grayThreshold = 0.9;
-        //double grayThreshold = 0.8;
 
         int keyboardTop = ImageToParse.FirstWithColor(ColorType.Gray, threshold: grayThreshold);
         int keyboardBottom = ImageToParse.LastWithColor(ColorType.Gray, threshold: grayThreshold);
@@ -163,7 +143,6 @@ public class ImageParser(Stream stream)
 
         int keyboardLeft = image.FirstWithoutColor(ColorType.White, row: false, threshold: 0.95);
         int keyboardRight = keyboardLeft;
-        //int keyboardRight = 0;
         image = image.Clone((IImageProcessingContext ctx) =>
             ctx.Crop(new Rectangle(
                 keyboardLeft,
@@ -241,7 +220,6 @@ public class ImageParser(Stream stream)
         for (; headerHeight < ImageToParse.Height; headerHeight++)
         {
             if (!ImageToParse.IsMostlyColors([ColorType.White, ColorType.Gray, ColorType.Black], headerHeight, threshold: 0.9))
-                //if (!ImageToParse.IsMostlyColor(ColorType.Black, headerHeight, threshold: 0.8))
                 break;
         }
 
@@ -258,17 +236,10 @@ public class ImageParser(Stream stream)
 
     public (string expected, string unexpected, string pattern) Parse()
     {
-        ImageToParse.SaveAsPng("original.png");
         ImageToParse = SkipHeader();
-        ImageToParse.SaveAsPng("SkipHeader1.png");
         ImageToParse = SkipHeader();
-        ImageToParse.SaveAsPng("SkipHeader2.png");
-
         var keyboard = FindKeyboard();
         var table = FindTable(keyboard.size);
-
-        table.SaveAsPng("table.png");
-        keyboard.image.SaveAsPng("keyboard.png");
 
         var keysInfo = ExtractButtons(keyboard.image, keys, 0).Union(ExtractButtons(keyboard.image, operations, 1)).ToList();
         var tableInfo = ExtractTableData(table).ToList();
