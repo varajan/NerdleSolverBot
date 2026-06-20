@@ -45,9 +45,6 @@ internal class ImageParserTests
         // Assert
         Assert.Multiple(() =>
         {
-            //pattern = "........";
-            // DEBUG: Temporarily ignore pattern assertion until we can fix the regex generation logic
-
             Assert.That(result.expected, Is.EqualTo(expected), "<Expected> doesn't match expected value");
             Assert.That(result.unexpected, Is.EqualTo(forbidden), "<Unexpected> doesn't match expected value");
             Assert.That(result.pattern, Is.EqualTo(pattern), "<Pattern> doesn't match expected value");

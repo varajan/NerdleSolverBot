@@ -9,7 +9,7 @@ internal static class ImageExtensions
     public static Image<Rgba32> GetBlackAndWhite(this Image<Rgba32> image, ColorType? color = null)
     {
         var result = image.Clone();
-        result.Mutate(ctx => ctx.BinaryThreshold(0.5f));
+        result.Mutate(ctx => ctx.BinaryThreshold(0.75f));
         return (color == ColorType.White) ? InvertColors(result) : result;
     }
 
@@ -84,15 +84,14 @@ internal static class ImageExtensions
         firstNotWhiteColumn = firstNotWhiteColumn < 5 ? 5 : firstNotWhiteColumn;
         firstNotWhiteRow = firstNotWhiteRow < 5 ? 5 : firstNotWhiteRow;
 
-        image = image.Clone((IImageProcessingContext ctx) =>
-            ctx.Crop(new Rectangle(
-                firstNotWhiteColumn,
-                firstNotWhiteRow,
-                image.Width - firstNotWhiteColumn,
-                image.Height - firstNotWhiteRow)));
+        var width = image.Width - firstNotWhiteColumn;
+        var height = image.Height - firstNotWhiteRow;
 
-        var width = image.FirstWithColor(ColorType.White, row: false, threshold: 0.95);
-        var height = image.FirstWithColor(ColorType.White, threshold: 0.95);
+        image = image.Clone((IImageProcessingContext ctx) =>
+            ctx.Crop(new Rectangle(firstNotWhiteColumn, firstNotWhiteRow, width, height)));
+
+        width = image.FirstWithColor(ColorType.White, row: false, threshold: 0.95);
+        height = image.FirstWithColor(ColorType.White, threshold: 0.95);
         width = width <= 0 ? image.Width : width;
         height = height <= 0 ? image.Height : height;
 

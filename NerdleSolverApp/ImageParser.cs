@@ -11,6 +11,9 @@ public class ImageParser(Stream stream)
     private readonly string[] keys = { "1", "2", "3", "4", "5", "6", "7", "8", "9", "0" };
     private readonly string[] operations = { "+", "-", "*", "/", "=" };
 
+    private const int cellMutateWidth = 30;
+    private const int cellMutateHeight = 30;
+
     private static string GetKeyboardFileName(string key) =>
         key switch
         {
@@ -61,7 +64,7 @@ public class ImageParser(Stream stream)
         cellImage.SaveAsPng("cellImage.png");
         var key = cellImage.GetBlackAndWhite(color).Normilized();
         var allKeys = keys.Concat(operations);
-        key.Mutate(x => x.Resize(30, 35));
+        key.Mutate(x => x.Resize(cellMutateWidth, cellMutateHeight));
 
         var result = new List<(string key, double difference)>();
 
@@ -77,7 +80,7 @@ public class ImageParser(Stream stream)
         // 25x35
         key.SaveAsPng("cell-as-key.png");
 
-        var xxx = result.OrderBy(x => x.difference).First().key;
+        var xxx = result.OrderBy(x => x.difference).ToList();
 
         return result.OrderBy(x => x.difference).First().key;
     }
@@ -129,7 +132,7 @@ public class ImageParser(Stream stream)
             cellImage.SaveAsPng("cellImage.png");
             var button = cellImage.GetBlackAndWhite(color).Normilized();
 
-            button.Mutate(x => x.Resize(30, 35));
+            button.Mutate(x => x.Resize(cellMutateWidth, cellMutateHeight));
             button.SaveAsPng(GetKeyboardFileName(buttonLabels[i]));
 
             yield return new CellInfo(buttonLabels[i], color);
