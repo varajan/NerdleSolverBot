@@ -52,6 +52,12 @@
     <None Update="Images\009.jpg">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
+    <None Update="Images\010.jpg">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Images\011.jpg">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
     <None Update="Images\014.jpg">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>

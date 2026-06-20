@@ -263,12 +263,12 @@ public class ImageParser(Stream stream)
         var tableInfo = ExtractTableData(table).ToList();
 
         var expected = keysInfo.Where(x => x.Color is ColorType.Green or ColorType.Purple).Select(x => x.Text).ToList();
+        var others = keysInfo.Where(x => x.Color is ColorType.White or ColorType.Black).Select(x => x.Text).ToList();
         var unexpected = keysInfo.Where(x => x.Color is ColorType.Black).Select(x => x.Text).ToList();
-        var white = keysInfo.Where(x => x.Color is ColorType.White).Select(x => x.Text).ToList();
 
         return (
             expected: string.Join("", expected),
-            unexpected: expected.Count == 8 ? string.Join("", white) : string.Join("", unexpected),
+            unexpected: expected.Count == 8 ? string.Join("", others) : string.Join("", unexpected),
             pattern: GetPattern(tableInfo));
     }
 }
