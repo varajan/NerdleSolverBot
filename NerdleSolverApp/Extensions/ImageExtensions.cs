@@ -114,7 +114,7 @@ internal static class ImageExtensions
         var color = corner.GetColor();
         if (corner.GetColor() == colorToSet) return image;
 
-        // calculate widht
+        // calculate width
         int width = 1;
         if (x == 0)
         {

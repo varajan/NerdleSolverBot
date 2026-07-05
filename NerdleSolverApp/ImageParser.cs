@@ -11,8 +11,8 @@ public class ImageParser(Stream stream)
     private readonly string[] keys = { "1", "2", "3", "4", "5", "6", "7", "8", "9", "0" };
     private readonly string[] operations = { "+", "-", "*", "/", "=" };
 
-    private const int cellMutateWidth = 30;
-    private const int cellMutateHeight = 30;
+    private const int cellMutateWidth = 15;
+    private const int cellMutateHeight = 20;
 
     private static string GetKeyboardFileName(string key) =>
         key switch
@@ -40,7 +40,7 @@ public class ImageParser(Stream stream)
 
     private CellInfo[] ExtractRowData(Image<Rgba32> tableImage, int row, int rowHeight)
     {
-        var delta = 15;
+        var delta = 5;
         var result = new CellInfo[8];
         var cellWidth = tableImage.Width / result.Length;
 
@@ -79,19 +79,25 @@ public class ImageParser(Stream stream)
 
     private static double CalculateDifference(Image<Rgba32> imageA, Image<Rgba32> imageB)
     {
-        int difference = 0;
+        double difference = 0;
         int width = Math.Min(imageA.Width, imageB.Width);
         int height = Math.Min(imageA.Height, imageB.Height);
-
 
         for (int x = 0; x < width; x++)
             for (int y = 0; y < height; y++)
             {
-                if (imageA[x, y].GetColor() != imageB[x, y].GetColor())
+                var colorA = imageA[x, y].GetColor();
+                var colorB = imageB[x, y].GetColor();
+
+                if (colorA == colorB) continue;
+
+                if (colorA is ColorType.Gray || colorB is ColorType.Gray)
+                    difference += 0.5;
+                else
                     difference++;
             }
 
-        return (double)difference / (width * height);
+        return difference / (width * height);
     }
 
     private static int GetRowHeight(Image<Rgba32> tableImage)
@@ -113,7 +119,7 @@ public class ImageParser(Stream stream)
     {
         var cellWidth = keyboardImage.Width / 10;
         var cellHeight = keyboardImage.Height / 2;
-        var delta = 15;
+        var delta = 5;
 
         for (var i = 0; i < buttonLabels.Length; i++)
         {
@@ -142,12 +148,12 @@ public class ImageParser(Stream stream)
                 keyboardBottom - keyboardTop)));
 
         int keyboardLeft = image.FirstWithoutColor(ColorType.White, row: false, threshold: 0.95);
-        int keyboardRight = keyboardLeft;
+        int keyboardRight = image.LastWithColor(ColorType.Gray, row: false, threshold: 0.75);
         image = image.Clone((IImageProcessingContext ctx) =>
             ctx.Crop(new Rectangle(
                 keyboardLeft,
                 0,
-                image.Width - keyboardLeft - keyboardRight,
+                keyboardRight - keyboardLeft,
                 image.Height)));
 
         var size = new Rectangle(keyboardLeft, keyboardTop, image.Width, image.Height);
