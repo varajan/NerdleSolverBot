@@ -21,15 +21,15 @@ internal class ImageParserTests
         yield return new TestCaseData("009.jpg", "35789+*=", "12460-/", "[^+][^7][^=][^3]9[^8][^5][^*]");
         yield return new TestCaseData("010.jpg", "34567+*=", "12890-/", "6[^28][^+/][^39][^5*]=4[^70]");
         yield return new TestCaseData("011.jpg", "34578-/=", "12690+*", "[^5][^/][^-][^4][^=][^3][^7]8");
-        //yield return new TestCaseData("012.jpg", "", "", ".*");
-        //yield return new TestCaseData("013.jpg", "", "", ".*");
+        yield return new TestCaseData("012.jpg", "12349+/=", "56780-*", "[^/][^4]2[^3][^+][^=][^9][^1]");
+        yield return new TestCaseData("013.jpg", "1238+=", "456790*", "[^13][^95][^+6][^28][^8*][^=0]=[^70]");
         yield return new TestCaseData("014.jpg", "12390+=", "45678*/", "[^16][^28][^+/][^39][^5*][^=0]=[^70]");
         yield return new TestCaseData("015.jpg", "12350+=", "46789*/", "[^16][^28][^+/][^39][^5*]=[^4=]0");
-        //yield return new TestCaseData("016.jpg", "", "", ".*");
-        //yield return new TestCaseData("017.jpg", "", "", ".*");
+        yield return new TestCaseData("016.jpg", "1238+=", "456790*", "[^13][^95][^+6][^28][^8*][^=0]=[^70]");
+        yield return new TestCaseData("017.jpg", "12346+/=", "57890-*", "[^/][^3][^6]4[^2][^1][^+][^=]");
         yield return new TestCaseData("018.jpg", "124568*=", "3790+-/", "6[^*][^4][^5][^2][^8][^=][^1]");
         yield return new TestCaseData("019.jpg", "235679*=", "1480+-/", "[^*][^2][^9]6[^5][^=][^3][^7]");
-        //yield return new TestCaseData("020.jpg", "", "", ".*");
+        yield return new TestCaseData("020.jpg", "12450/=", "36789+*", "[^16][^28][^+/][^39][^5*][^=0]=[^70]");
     }
 
     [TestCaseSource(nameof(ImageParseTestCases))]
