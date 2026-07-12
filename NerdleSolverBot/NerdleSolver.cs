@@ -1,4 +1,5 @@
 ﻿using NerdleSolverApp;
+using NerdleSolverApp.Data;
 using System.Text;
 using Telegram.Bot;
 using Telegram.Bot.Polling;
@@ -35,9 +36,14 @@ async Task HandleUpdateAsync(
     {
         try
         {
-            await ParseImage();
+            nerdle = await ParseImage();
             await SendMessage($"Must: {nerdle.Expected}\r\nForbidden: {nerdle.Unexpected}\r\nPattern: {nerdle.Pattern}");
-            await Calculate();
+
+            var keysToSolveMin = Constants.Symbols.Length - 1;
+            if (nerdle.Expected.Length + nerdle.Unexpected.Length >= keysToSolveMin)
+            {
+                await Calculate();
+            }
         }
         catch (Exception ex)
         {
@@ -114,7 +120,7 @@ async Task HandleUpdateAsync(
 
     // --- local functions ---
 
-    async Task ParseImage()
+    async Task<Nerdle> ParseImage()
     {
         var photo = update.Message!.Photo!.Last();
         var file = await botClient.GetFile(photo.FileId);
@@ -125,9 +131,8 @@ async Task HandleUpdateAsync(
 
         var parser = new ImageParser(stream);
         var (expected, unexpected, pattern) = parser.Parse();
-        nerdle.Expected = expected;
-        nerdle.Unexpected = unexpected;
-        nerdle.Pattern = pattern;
+
+        return new Nerdle(expected, unexpected, pattern);
     }
 
     // --- local functions ---

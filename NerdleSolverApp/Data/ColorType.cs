@@ -1,4 +1,4 @@
-﻿namespace NerdleSolverApp;
+﻿namespace NerdleSolverApp.Data;
 
 internal enum ColorType
 {

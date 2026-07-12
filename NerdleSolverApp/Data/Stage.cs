@@ -1,4 +1,4 @@
-﻿namespace NerdleSolverApp;
+﻿namespace NerdleSolverApp.Data;
 
 public enum Stage
 {

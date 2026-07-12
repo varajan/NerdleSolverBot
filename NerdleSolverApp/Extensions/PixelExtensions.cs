@@ -1,4 +1,5 @@
-﻿using SixLabors.ImageSharp.PixelFormats;
+﻿using NerdleSolverApp.Data;
+using SixLabors.ImageSharp.PixelFormats;
 
 namespace NerdleSolverApp.Extensions;
 

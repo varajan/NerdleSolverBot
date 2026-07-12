@@ -1,4 +1,5 @@
-﻿using NerdleSolverApp.Extensions;
+﻿using NerdleSolverApp.Data;
+using NerdleSolverApp.Extensions;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
@@ -8,8 +9,6 @@ namespace NerdleSolverApp;
 public class ImageParser(Stream stream)
 {
     private Image<Rgba32> ImageToParse = Image.Load<Rgba32>(stream);
-    private readonly string[] keys = { "1", "2", "3", "4", "5", "6", "7", "8", "9", "0" };
-    private readonly string[] operations = { "+", "-", "*", "/", "=" };
 
     private const int cellMutateWidth = 15;
     private const int cellMutateHeight = 20;
@@ -61,12 +60,11 @@ public class ImageParser(Stream stream)
     {
         var color = cellImage.GetColor();
         var key = cellImage.GetBlackAndWhite(color).Normilized();
-        var allKeys = keys.Concat(operations);
         key.Mutate(x => x.Resize(cellMutateWidth, cellMutateHeight));
 
         var result = new List<(string key, double difference)>();
 
-        foreach (var k in allKeys)
+        foreach (var k in Constants.Symbols)
         {
             var keyImage = Image.Load<Rgba32>(GetKeyboardFileName(k));
             var difference = CalculateDifference(keyImage, key);
@@ -199,7 +197,7 @@ public class ImageParser(Stream stream)
             if (green is not null)
             {
                 var key = green.Text;
-                pattern += operations.Contains(key) && key != "=" ? $"\\{key}" : key;
+                pattern += Constants.Operations.Contains(key) && key != "=" ? $"\\{key}" : key;
                 continue;
             }
 
@@ -247,7 +245,9 @@ public class ImageParser(Stream stream)
         var keyboard = FindKeyboard();
         var table = FindTable(keyboard.size);
 
-        var keysInfo = ExtractButtons(keyboard.image, keys, 0).Union(ExtractButtons(keyboard.image, operations, 1)).ToList();
+        var keysInfo = ExtractButtons(keyboard.image, Constants.Keys, 0)
+            .Union(ExtractButtons(keyboard.image, Constants.Operations, 1))
+            .ToList();
         var tableInfo = ExtractTableData(table).ToList();
 
         var expected = keysInfo.Where(x => x.Color is ColorType.Green or ColorType.Purple).Select(x => x.Text).ToList();

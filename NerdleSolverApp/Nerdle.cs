@@ -1,17 +1,14 @@
-﻿using System.Data;
+﻿using NerdleSolverApp.Data;
+using System.Data;
 using System.Text.RegularExpressions;
 
 namespace NerdleSolverApp;
 
-public class Nerdle
+public class Nerdle(string? expected = null, string? unexpected = null, string? pattern = null)
 {
-    private const int Length = 8;
-    private readonly string[] Operations = { "+", "-", "*", "/" };
-    private readonly string[] Symbols = { "0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "+", "-", "*", "/", "=" };
-
-    public string Expected { get; set; } = string.Empty;
-    public string Unexpected { get; set; } = string.Empty;
-    public string Pattern { get; set; } = ".*";
+    public string Expected { get; set; } = expected ?? string.Empty;
+    public string Unexpected { get; set; } = unexpected ?? string.Empty;
+    public string Pattern { get; set; } = pattern ?? string.Empty;
 
     private DataTable? _calculator;
     private DataTable Calculator => _calculator ??= new();
@@ -39,7 +36,7 @@ public class Nerdle
 
     private bool IsValidLeft(string expression)
     {
-        if (Operations.All(x => !expression.Contains(x))) return false;
+        if (Constants.Operations.All(x => !expression.Contains(x))) return false;
 
         var numbers = Regex.Split(expression, @"[+\-*/]");
         return !numbers.Any(x => x.Length == 0 || (x.Length > 1 && x.StartsWith("0")));
@@ -47,7 +44,7 @@ public class Nerdle
 
     private bool IsValidRight(string expression)
     {
-        if (Operations.Any(expression.Contains)) return false;
+        if (Constants.Operations.Any(expression.Contains)) return false;
         return true;
     }
 
@@ -69,13 +66,13 @@ public class Nerdle
 
     private IEnumerable<string> GenerateCandidates()
     {
-        var symbols = Symbols.ToList().Where(s => !Unexpected.Contains(s)).ToArray();
-        var totalCombinations = (int)Math.Pow(symbols.Length, Length);
+        var symbols = Constants.Symbols.ToList().Where(s => !Unexpected.Contains(s)).ToArray();
+        var totalCombinations = (int)Math.Pow(symbols.Length, Constants.NerdleLength);
         for (int i = 0; i < totalCombinations; i++)
         {
-            var candidate = new char[Length];
+            var candidate = new char[Constants.NerdleLength];
             int temp = i;
-            for (int j = 0; j < Length; j++)
+            for (int j = 0; j < Constants.NerdleLength; j++)
             {
                 candidate[j] = symbols[temp % symbols.Length][0];
                 temp /= symbols.Length;
