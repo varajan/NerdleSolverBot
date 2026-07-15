@@ -42,6 +42,7 @@ async Task HandleUpdateAsync(
             var keysToSolveMin = Constants.Symbols.Length - 1;
             if (nerdle.Expected.Length + nerdle.Unexpected.Length >= keysToSolveMin)
             {
+                await SendMessage("Enough information collected. Searching for a solution...");
                 await Calculate();
             }
         }
