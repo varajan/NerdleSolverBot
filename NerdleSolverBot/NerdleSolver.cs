@@ -1,6 +1,8 @@
 ﻿using NerdleSolverApp;
 using NerdleSolverApp.Data;
+using NerdleSolverApp.Extensions;
 using System.Text;
+using System.Text.RegularExpressions;
 using Telegram.Bot;
 using Telegram.Bot.Polling;
 using Telegram.Bot.Types;
@@ -89,19 +91,42 @@ async Task HandleUpdateAsync(
     switch (stage)
     {
         case Stage.Expected:
-            nerdle.Expected = text;
+            var isValidExpected = await IsValidInput(text);
+            if (isValidExpected)
+            {
+                nerdle.Expected = text.OnlyUnique();
+            }
             break;
 
         case Stage.Unexpected:
-            nerdle.Unexpected = text;
+            var isValidUnexpected = await IsValidInput(text);
+            if (isValidUnexpected)
+            {
+                nerdle.Unexpected = text.OnlyUnique();
+            }
             break;
 
         case Stage.Pattern:
-            nerdle.Pattern = text;
+            var isValidPattern = await IsValidPattern(text);
+            if (isValidPattern)
+            {
+                nerdle.Pattern = text.OnlyUnique();
+            }
             break;
     }
 
     // --- local functions ---
+
+    async Task<bool> IsValidInput(string text)
+    {
+        var pattern = @"^[0-9+\-*/=]+$";
+        return text.Length is > 0 and <= 20 && Regex.IsMatch(text, pattern);
+    }
+
+    async Task<bool> IsValidPattern(string text)
+    {
+        return text.Length is > 0 and <= 100 && text.IsValidRegex();
+    }
 
     async Task Calculate()
     {
