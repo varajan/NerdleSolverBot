@@ -112,7 +112,7 @@ Using the remaining candidates, it can:
 
 ## 🚀 Installation
 
-Download archive from the [**Releases**](https://github.com/varajan/NerdleSolver/releases) section.
+Download archive from the [**Releases**](https://github.com/varajan/NerdleSolverBot/releases) section.
 
 ---
 
