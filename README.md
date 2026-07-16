@@ -151,7 +151,7 @@ Download archive from the [**Releases**](https://github.com/varajan/NerdleSolver
    123456789:ABCdefGhIJKlmNoPQRsTUVwxyZ
    ```
 
-8. Save the file and make sure it remains in the same directory as the application executable
+8. Save the file and make sure it remains in the same directory as the application executable.
 
 9. Simply run:
 
@@ -165,3 +165,31 @@ If SmartScreen blocks the app:
 2. Click **Run anyway**
 
 ---
+
+## 📋 Configure the Bot Menu
+
+To make the bot easier to use, you can configure its command menu in **BotFather**.
+
+1. Open your chat with **BotFather**.
+
+2. Run:
+
+   ```
+   /setcommands
+   ```
+
+3. Select your bot.
+
+4. Paste the following list of commands:
+
+   ```
+   must - What symbols are expected?
+   forbidden - What symbols are forbidden?
+   pattern - Send RegEx pattern
+   calculate - Go!
+   cancel - Cancel
+   ```
+
+5. Save the changes.
+
+Your bot will now display these commands in Telegram's menu, making them easy to access without typing.
