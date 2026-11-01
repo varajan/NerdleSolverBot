@@ -24,7 +24,7 @@ botClient.StartReceiving(
 
 var me = await botClient.GetMe();
 var versionPath = Path.Combine(AppContext.BaseDirectory, "version.txt");
-var version = File.Exists(versionPath) ? File.ReadAllText(versionPath) : string.Empty;
+var version = File.Exists(versionPath) ? File.ReadAllText(versionPath).Trim() : "<unknown>";
 
 Console.WriteLine($"Bot started: @{me.Username} (Version: {version})");
 Console.ReadLine();
@@ -66,6 +66,10 @@ async Task HandleUpdateAsync(
 
     switch (text)
     {
+        case "/version":
+            await SendMessage($"Version: {version}");
+            return;
+
         case "/cancel":
             stage = Stage.ShowAll;
             await SendMessage($"Must: {nerdle.Expected}\r\nForbidden: {nerdle.Unexpected}\r\nPattern: {nerdle.Pattern}");
