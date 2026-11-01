@@ -52,7 +52,7 @@ jobs:
         run: |
           $Version = (Get-Content "version" -Raw).Trim()
 
-          if ($Version -notmatch '^\d+\.\d+$') {
+          if ($Version -notmatch '^\d+$') {
             throw "Invalid version in version file: $Version"
           }
 
