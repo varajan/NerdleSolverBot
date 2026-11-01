@@ -94,7 +94,7 @@ internal static class ImageExtensions
         height = height <= 0 ? image.Height : height;
 
         image = image.Clone((IImageProcessingContext ctx) =>
-            ctx.Crop(new Rectangle(0, 0, width, height)));
+            ctx.Crop(new Rectangle(0, 0, width - 1, height - 1)));
 
         return image;
     }
@@ -184,6 +184,22 @@ internal static class ImageExtensions
         {
             if (image.IsMostlyColor(color, y, row: row, threshold: threshold))
                 return y;
+        }
+
+        return 0;
+    }
+
+    public static int LastPairWithColor(this Image<Rgba32> image, ColorType color, bool row = true, double threshold = 0.95)
+    {
+        int size = row ? image.Height : image.Width;
+
+        for (int y = size - 1; y > 0; y--)
+        {
+            if (image.IsMostlyColor(color, y, row, threshold) &&
+                image.IsMostlyColor(color, y - 1, row, threshold))
+            {
+                return y;
+            }
         }
 
         return 0;

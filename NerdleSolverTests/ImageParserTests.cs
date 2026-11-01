@@ -30,6 +30,8 @@ internal class ImageParserTests
         yield return new TestCaseData("018.jpg", "124568*=", "3790+-/", "6[^*][^4][^5][^2][^8][^=][^1]");
         yield return new TestCaseData("019.jpg", "235679*=", "1480+-/", "[^*][^2][^9]6[^5][^=][^3][^7]");
         yield return new TestCaseData("020.jpg", "12450/=", "36789+*", "[^16][^28][^+/][^39][^5*][^=0]=[^70]");
+        yield return new TestCaseData("021.jpg", "1789*=", "234560+/", "[^16][^28][^+/][^39][^5*]=[^4=][^70]");
+        yield return new TestCaseData("022.jpg", "23468-*=", "15790+/", "[^*][^6][^2]4[^3][^8][^-][^=]");
     }
 
     [TestCaseSource(nameof(ImageParseTestCases))]

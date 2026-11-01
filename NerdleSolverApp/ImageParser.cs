@@ -137,7 +137,7 @@ public class ImageParser(Stream stream)
         double grayThreshold = 0.9;
 
         int keyboardTop = ImageToParse.FirstWithColor(ColorType.Gray, threshold: grayThreshold);
-        int keyboardBottom = ImageToParse.LastWithColor(ColorType.Gray, threshold: grayThreshold);
+        int keyboardBottom = ImageToParse.LastPairWithColor(ColorType.Gray, threshold: grayThreshold);
         var image = ImageToParse.Clone((IImageProcessingContext ctx) =>
             ctx.Crop(new Rectangle(
                 0,
@@ -146,7 +146,7 @@ public class ImageParser(Stream stream)
                 keyboardBottom - keyboardTop)));
 
         int keyboardLeft = image.FirstWithoutColor(ColorType.White, row: false, threshold: 0.95);
-        int keyboardRight = image.LastWithColor(ColorType.Gray, row: false, threshold: 0.75);
+        int keyboardRight = image.LastPairWithColor(ColorType.Gray, row: false, threshold: 0.75);
         image = image.Clone((IImageProcessingContext ctx) =>
             ctx.Crop(new Rectangle(
                 keyboardLeft,
