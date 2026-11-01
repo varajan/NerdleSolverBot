@@ -12,6 +12,8 @@ var botToken = File.ReadAllText("botId.txt");
 var nerdle = new Nerdle();
 var botClient = new TelegramBotClient(botToken);
 var receiverOptions = new ReceiverOptions { AllowedUpdates = [] };
+var versionPath = Path.Combine(AppContext.BaseDirectory, "version.txt");
+var version = File.Exists(versionPath) ? File.ReadAllText(versionPath).Trim() : "<unknown>";
 
 using var cts = new CancellationTokenSource();
 
@@ -23,9 +25,6 @@ botClient.StartReceiving(
 );
 
 var me = await botClient.GetMe();
-var versionPath = Path.Combine(AppContext.BaseDirectory, "version.txt");
-var version = File.Exists(versionPath) ? File.ReadAllText(versionPath).Trim() : "<unknown>";
-
 Console.WriteLine($"Bot started: @{me.Username} (Version: {version})");
 Console.ReadLine();
 cts.Cancel();
