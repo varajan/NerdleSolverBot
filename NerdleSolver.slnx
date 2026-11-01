@@ -1,6 +1,7 @@
 <Solution>
   <Folder Name="/Solution Items/">
     <File Path="README.md" />
+    <File Path="UpdateBot.ps1" />
   </Folder>
   <Project Path="NerdleSolverApp/NerdleSolverApp.csproj" Id="b9c7dfad-b321-42d0-a37a-42d31ae31996" />
   <Project Path="NerdleSolverBot/NerdleSolverBot.csproj" />
