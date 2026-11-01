@@ -32,6 +32,11 @@ jobs:
       - name: Run tests
         run: dotnet test NerdleSolverTests/NerdleSolverTests.csproj -c Release --no-restore
 
+      - name: Create license file
+        shell: pwsh
+        run: |
+          Set-Content -Path "NerdleSolverApp/sixlabors.lic" -Value "${{ secrets.SIXLABORS_LICENSE_CONTENT }}"
+
       - name: Build and publish
         run: dotnet publish -c Release --no-restore
 
