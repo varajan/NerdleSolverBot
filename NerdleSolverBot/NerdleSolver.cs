@@ -23,7 +23,10 @@ botClient.StartReceiving(
 );
 
 var me = await botClient.GetMe();
-Console.WriteLine($"Bot started: @{me.Username}");
+var versionPath = Path.Combine(AppContext.BaseDirectory, "version.txt");
+var version = File.Exists(versionPath) ? File.ReadAllText(versionPath) : string.Empty;
+
+Console.WriteLine($"Bot started: @{me.Username} (Version: {version})");
 Console.ReadLine();
 cts.Cancel();
 

@@ -6,7 +6,7 @@ $RepoName  = "NerdleSolverBot"
 $AssetName = "NerdleSolverBot.zip"
 
 $ExeNames = @(
-    "NerdleSolverBot.exe",
+    "NerdleSolverBot.exe"
 )
 
 $PreserveFiles = @(
