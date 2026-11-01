@@ -26,8 +26,14 @@ jobs:
         with:
           dotnet-version: '10.0.x'
 
+      - name: Restore dependencies
+        run: dotnet restore
+
+      - name: Run tests
+        run: dotnet test NerdleSolverTests/NerdleSolverTests.csproj -c Release --no-restore
+
       - name: Build and publish
-        run: dotnet publish -c Release
+        run: dotnet publish -c Release --no-restore
 
       - name: Create ZIP archive
         shell: pwsh
